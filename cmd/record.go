@@ -44,7 +44,7 @@ func (cmd *recordCmd) Run(fl *pflag.FlagSet) {
 
 	video, err := mjpeg.New(in, 200, 100, 2)
 	if err != nil {
-		flog.Fatal("failed to create video.avi", "error", err)
+		flog.Fatal("failed to create %s", in, "error", err)
 	}
 	defer video.Close()
 
