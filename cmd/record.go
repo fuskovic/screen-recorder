@@ -132,7 +132,6 @@ func (cmd *recordCmd) Run(fl *pflag.FlagSet) {
 			flog.Error("failed to shutdown replay server", "error", err.Error())
 			return
 		}
-		println()
 		flog.Success("successfully shutdown replay server")
 	}()
 
@@ -148,6 +147,7 @@ func (cmd *recordCmd) Run(fl *pflag.FlagSet) {
 			fl.Usage()
 			return
 		case <-interrupt:
+			println()
 			flog.Info("stopping replay server")
 			return
 		}
