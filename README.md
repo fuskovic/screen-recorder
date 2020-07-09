@@ -14,7 +14,7 @@ Doesn't capture audio yet.
 
 ## Recording
 
-    screen-recorder record --name cool_video_name --port 8000
+    screen-recorder record --out cool_video_name --port 8000
 
 The recording can be stopped by pressing enter in the same shell that started the program (reads from stdin).
 
