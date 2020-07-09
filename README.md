@@ -1,14 +1,15 @@
 # Screen-recorder(WIP)
 
-An easy to use free screen-recorder.
+Screen recorder for Mac OSX.
 
-Doesn't capture audio yet.
+`Doesn't capture audio yet.`
 
-## Required
-
-- [ffmpeg](https://ffmpeg.org/download.html)
 
 ## Installation
+
+    brew update
+
+    brew install ffmpeg
 
     go get -u github.com/fuskovic/screen-recorder
 
