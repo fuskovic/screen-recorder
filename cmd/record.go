@@ -25,8 +25,8 @@ import (
 var signals = []os.Signal{syscall.SIGINT, syscall.SIGTERM}
 
 type recordCmd struct {
-	name string
-	port int
+	outFile string
+	port    int
 }
 
 // Spec returns a command spec containing a description of it's usage.
@@ -41,12 +41,12 @@ func (cmd *recordCmd) Spec() cli.CommandSpec {
 // RegisterFlags initializes how a flag set is processed for a particular command.
 func (cmd *recordCmd) RegisterFlags(fl *pflag.FlagSet) {
 	fl.IntVarP(&cmd.port, "port", "p", cmd.port, "Port to run the replay server on.")
-	fl.StringVarP(&cmd.name, "name", "n", cmd.name, "Name to give screen-recording.")
+	fl.StringVarP(&cmd.outFile, "out", "o", cmd.outFile, "Filename to write audio data")
 }
 
 // Run starts the screen-recording and stops the recording when the user inputs anything to stdin.
 func (cmd *recordCmd) Run(fl *pflag.FlagSet) {
-	if cmd.name == "" {
+	if cmd.outFile == "" {
 		flog.Error("you forgot to name the video")
 		fl.Usage()
 		return
@@ -58,7 +58,7 @@ func (cmd *recordCmd) Run(fl *pflag.FlagSet) {
 		return
 	}
 
-	in := fmt.Sprintf("%s.avi", cmd.name)
+	in := fmt.Sprintf("%s.avi", cmd.outFile)
 
 	video, err := mjpeg.New(in, 200, 100, 2)
 	if err != nil {
@@ -104,7 +104,7 @@ func (cmd *recordCmd) Run(fl *pflag.FlagSet) {
 		break
 	}
 
-	out := fmt.Sprintf("%s.mp4", cmd.name)
+	out := fmt.Sprintf("%s.mp4", cmd.outFile)
 	flog.Info("creating %s", out)
 
 	convert := exec.Command("ffmpeg", "-i", in, out)
