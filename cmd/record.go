@@ -10,7 +10,9 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
 
@@ -59,67 +61,14 @@ func (cmd *recordCmd) Run(fl *pflag.FlagSet) {
 	}
 
 	in := fmt.Sprintf("%s.avi", cmd.outFile)
-
-	video, err := mjpeg.New(in, 200, 100, 2)
+	out, err := createRecording(in)
 	if err != nil {
-		flog.Fatal("failed to create %s", in, "error", err)
+		flog.Error("failed to create recording : %v", err)
+		fl.Usage()
+		return
 	}
-	defer video.Close()
+	flog.Success("successfully created %s", out)
 
-	scanner := bufio.NewScanner(os.Stdin)
-	ticker := time.NewTicker(250 * time.Millisecond)
-	done := make(chan bool)
-	flog.Success("recording started")
-	flog.Info("press enter to stop recording")
-
-	go func() {
-		for {
-			select {
-			case <-done:
-				ticker.Stop()
-				return
-			case <-ticker.C:
-				buf := &bytes.Buffer{}
-				bounds := screenshot.GetDisplayBounds(0)
-
-				img, err := screenshot.CaptureRect(bounds)
-				if err != nil {
-					flog.Fatal("failed to capture screenshot", "error", err)
-				}
-
-				if err := jpeg.Encode(buf, img, nil); err != nil {
-					flog.Fatal("failed to encode jpeg", "error", err)
-				}
-
-				if err := video.AddFrame(buf.Bytes()); err != nil {
-					flog.Fatal("failed to add frame", "error", err)
-				}
-			}
-		}
-	}()
-
-	for scanner.Scan() {
-		flog.Info("stopped recording")
-		done <- true
-		break
-	}
-
-	out := fmt.Sprintf("%s.mp4", cmd.outFile)
-	flog.Info("creating %s", out)
-
-	convert := exec.Command("ffmpeg", "-i", in, out)
-	if err := convert.Start(); err != nil {
-		flog.Fatal(err.Error())
-	}
-	if err := convert.Wait(); err != nil {
-		flog.Fatal(err.Error())
-	}
-
-	if err := os.Remove(in); err != nil {
-		flog.Fatal(err.Error())
-	}
-
-	flog.Success("%s successfully created", out)
 	errs := make(chan error, 1)
 	port := fmt.Sprintf(":%d", cmd.port)
 	interrupt := make(chan os.Signal, 1)
@@ -185,4 +134,69 @@ func openbrowser(url string) error {
 	}
 
 	return err
+}
+
+func createRecording(fileName string) (string, error) {
+	var out string
+	scanner := bufio.NewScanner(os.Stdin)
+	ticker := time.NewTicker(250 * time.Millisecond)
+	done := make(chan bool)
+
+	video, err := mjpeg.New(fileName, 200, 100, 2)
+	if err != nil {
+		return out, err
+	}
+	defer video.Close()
+
+	flog.Success("recording started")
+
+	go func() {
+		flog.Info("press enter to stop recording")
+		for {
+			select {
+			case <-done:
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				buf := &bytes.Buffer{}
+				bounds := screenshot.GetDisplayBounds(0)
+
+				img, err := screenshot.CaptureRect(bounds)
+				if err != nil {
+					flog.Fatal("failed to capture screenshot", "error", err)
+				}
+
+				if err := jpeg.Encode(buf, img, nil); err != nil {
+					flog.Fatal("failed to encode jpeg", "error", err)
+				}
+
+				if err := video.AddFrame(buf.Bytes()); err != nil {
+					flog.Fatal("failed to add frame", "error", err)
+				}
+			}
+		}
+	}()
+
+	for scanner.Scan() {
+		flog.Info("stopped recording")
+		done <- true
+		break
+	}
+
+	ext := path.Ext(fileName)
+	out = fmt.Sprintf("%s.mp4", strings.TrimSuffix(fileName, ext))
+	flog.Info("creating %s", out)
+
+	convert := exec.Command("ffmpeg", "-i", fileName, out)
+	if err := convert.Start(); err != nil {
+		return out, err
+	}
+	if err := convert.Wait(); err != nil {
+		return out, err
+	}
+
+	if err := os.Remove(fileName); err != nil {
+		return out, err
+	}
+	return out, nil
 }
