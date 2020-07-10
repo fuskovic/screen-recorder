@@ -16,7 +16,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gorilla/mux"
 	"github.com/icza/mjpeg"
 	"github.com/kbinani/screenshot"
 	"github.com/spf13/pflag"
@@ -104,7 +103,7 @@ func (cmd *recordCmd) Run(fl *pflag.FlagSet) {
 }
 
 func startReplayServer(port, out string, errs chan error) *http.Server {
-	r := mux.NewRouter()
+	r := http.NewServeMux()
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "video/mp4")
 		http.ServeFile(w, r, out)
